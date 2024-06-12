@@ -5,8 +5,8 @@
 #include <Adafruit_MPU6050.h>
 
 // konfigurasi wifi
-const char* ssid = "JTI-POLINEMA";
-const char* password = "jtifast!";
+const char* ssid = "sokin ngab";
+const char* password = "12345678";
 
 // konfigurasi mqtt server
 const int port = 1883;
@@ -51,7 +51,6 @@ void setup() {
 void loop() {
   if (!client.connected()) { reconnect(); }
   client.loop();
-  delay(2000);
 
   sensors_event_t accel, gyro, temp;
   mpu.getEvent(&accel, &gyro, &temp);

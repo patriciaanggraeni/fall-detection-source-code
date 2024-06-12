@@ -1,34 +1,48 @@
 import psycopg2
+from datetime import datetime
 
 
-def save_to_database(data):
+def create_connection():
+    return psycopg2.connect(
+        dbname="fall-detection",
+        user="Anggara191",
+        password="buat_tugas_proyek",
+        host="34.128.79.147",
+        port="5432"
+    )
+
+
+def save_to_database(sensor_data):
+    connection = None
+    cursor = None
+
     try:
-        # Ganti dengan kredensial database Anda
-        conn = psycopg2.connect(
-            dbname="fall-detection",
-            user="Anggara191",
-            password="buat_tugas_proyek",
-            host="34.128.79.147",
-            port="5432"
-        )
-        cur = conn.cursor()
+        connection = create_connection()
+        cursor = connection.cursor()
 
-        # Query untuk memasukkan data
-        query = """
-        INSERT INTO sensor_data (accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, fall_detected, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-        """
-        cur.execute(query, (
-            data['accel_x'], data['accel_y'], data['accel_z'],
-            data['gyro_x'], data['gyro_y'], data['gyro_z'],
-            data['fall_detected']
+        accel_data = sensor_data[0]
+        gyro_data = sensor_data[1]
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        cursor.execute("""
+              INSERT INTO sensor_data (accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, timestamp)
+              VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            accel_data[0], accel_data[1],
+            accel_data[2], gyro_data[0],
+            gyro_data[1], gyro_data[2],
+            timestamp
         ))
 
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("Data inserted successfully")
-
+        connection.commit()
+        print("\n\n===================================")
+        print("DATA BERHASIL DI SIMPAN KE DATABASE")
+        print("===================================\n\n")
     except Exception as e:
-        print(f"Error saving data to database: {e}")
-        raise
+        print(f"Error inserting data: {e}")
+        connection.rollback()
+    finally:
+        cursor.close()
+        connection.close()
+
+

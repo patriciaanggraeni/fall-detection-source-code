@@ -25,7 +25,6 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    print(f"Message received from topic {msg.topic}: {msg.payload.decode()}")
     if msg.topic == accel_topic:
         future = publisher.publish(accel_topic_path, msg.payload)
         future.result()
@@ -33,10 +32,12 @@ def on_message(client, userdata, msg):
         future = publisher.publish(gyro_topic_path, msg.payload)
         future.result()
 
+    print(f"Message received from topic {msg.topic}: {msg.payload.decode()}")
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
 
-client.connect(mqtt_broker, mqtt_port)
-client.loop_forever()
+mqtt_client = mqtt.Client()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+
+mqtt_client.connect(mqtt_broker, mqtt_port)
+mqtt_client.loop_forever()
