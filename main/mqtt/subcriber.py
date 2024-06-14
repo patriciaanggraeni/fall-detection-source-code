@@ -1,10 +1,12 @@
 import time
-import datetime
+import numpy as np
 import paho.mqtt.client as mqtt
+
 from google.cloud import logging
-from assets.credential_key import key
 from main.processing import predictor
+from assets.credential_key import key
 from main.helper import database_config
+from sklearn.linear_model import LinearRegression
 
 key.get_credential_key()
 
@@ -17,6 +19,11 @@ gyro_topic = "sensor/mpu6050/gyro"
 accel_topic = "sensor/mpu6050/accel"
 
 data_buffer = []
+save_interval = 1
+message_count = 0
+start_time = time.time()
+interpolation_target = 600
+last_save_time = time.time()
 
 
 def on_connect(client, userdata, flags, rc):
@@ -25,37 +32,52 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(gyro_topic)
 
 
-last_save_time = time.time()
-
-
 def on_message(client, userdata, msg):
     global data_buffer, last_save_time
+    global start_time, message_count
 
-    # Decode payload dari pesan MQTT dan konversi menjadi list float
     sensor_data = msg.payload.decode('utf-8')
-    sensor_array = [float(data) for data in sensor_data.split(',')]
-
-    # Tambahkan data ke dalam buffer
+    sensor_array = [float("{:.2f}".format(float(data))) for data in sensor_data.split(',')]
     data_buffer.append(sensor_array)
 
-    # Cetak panjang buffer dan waktu penerimaan pesan
     print(f"Current buffer length: {len(data_buffer)}")
     print(f"Received message at: {time.time()}")
 
-    # Jika buffer mencapai 600 data atau telah berlalu 1 detik, simpan data ke database
-    if len(data_buffer) >= 600 or time.time() - last_save_time >= 1:
-        save_and_clear_buffer()
-        last_save_time = time.time()
+    if len(data_buffer) >= interpolation_target:
+       save_and_clear_buffer()
+
+
+def interpolate_data(data):
+    target_length = interpolation_target
+    original_length = len(data)
+
+    if original_length > target_length:
+        return data
+
+    step = original_length / target_length
+
+    interpolated_data = []
+    for i in range(target_length):
+        index = int(i * step)
+        interpolated_data.append(data[index])
+
+    return interpolated_data
 
 
 def save_and_clear_buffer():
-    global data_buffer
+    global data_buffer, last_save_time
 
-    # Simpan data ke database
-    database_config.save_to_database(data_buffer)
+    if data_buffer:
+        interpolated_data_buffer = [interpolate_data(data) for data in data_buffer]
+        result = predictor.make_prediction(data_buffer[:interpolation_target])
 
-    # Bersihkan buffer
-    data_buffer.clear()
+        print(f"Hasil Prediksi: {result}")
+        print("=======================================================================\n")
+        database_config.save_to_database(interpolated_data_buffer, result[0])
+
+        last_save_time = time.time()
+        data_buffer.clear()
+        last_save_time = time.time()
 
     print("Data saved to database.")
 

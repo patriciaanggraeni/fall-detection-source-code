@@ -5,8 +5,8 @@
 #include <Adafruit_MPU6050.h>
 
 // konfigurasi wifi
-const char* ssid = "sokin ngab";
-const char* password = "12345678";
+const char* ssid = "JTI-POLINEMA";
+const char* password = "jtifast!";
 
 // konfigurasi mqtt server
 const int port = 1883;

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 from assets.credential_key import key
@@ -7,7 +8,13 @@ key.get_credential_key()
 logging_client = logging.Client()
 logger = logging_client.logger("pubsub_messages")
 
-model = tf.keras.models.load_model("../../assets/model/update_v2/resampling/model.keras")
+model_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../../assets/model/update_v2/resampling/model.keras"
+    )
+)
+model = tf.keras.models.load_model(model_path)
 
 
 def make_prediction(data_buffer):
@@ -18,8 +25,6 @@ def make_prediction(data_buffer):
         data = data.reshape((1, data.shape[0], data.shape[1], 1))
 
         prediction = model.predict(data)
-
-        print(f"Hasil Prediksi: {prediction}")
         return prediction
 
     except ValueError as e:
